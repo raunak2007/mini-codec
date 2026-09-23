@@ -1,0 +1,6 @@
+data/
+checkpoints/
+.venv/
+*.pdf
+runs/
+__pycache__/
