@@ -153,7 +153,7 @@ training and the training loss. Audio: `results/samples/` has the same test clip
   when more codes are dead than the batch has vectors, so about 300 rows of most late codebooks are exact duplicates at
   the end of training (table above). The last four quantizers therefore carry 7.6 to 8.4 effective bits per code
   instead of 10, and the nominal 4 kbps is closer to 3.6 kbps of usable capacity. Found with `eval_usage.py`; a fix is
-  proposed upstream (https://github.com/lucidrains/vector-quantize-pytorch/pull/NNN). Retraining with the fix, or with a batch larger than the codebook, is the obvious next
+  proposed upstream (https://github.com/lucidrains/vector-quantize-pytorch/pull/). Retraining with the fix, or with a batch larger than the codebook, is the obvious next
   experiment and could change the 2 versus 4 kbps comparison.
 - Single seed per run, 9 hours of clean read speech, one model size. Numbers are indicative of trends, not of the
   ceiling, and the size of the fine-tune effect at 0.5 kbps (4 WER points) is one measurement.
