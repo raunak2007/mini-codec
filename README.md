@@ -1,10 +1,11 @@
 # mini-codec
 
 A SoundStream-style neural speech codec trained from scratch on 9 hours of LibriTTS-R, plus a study of what an
-adversarial loss buys and what it costs at low bitrates. One training run covers 0.5 to 4 kbps; three evaluation
-axes (spectral distance, ASR intelligibility, voice-quality proxies) disagree with each other in instructive ways.
+adversarial loss buys and what it costs at low bitrates. One training run covers 0.5 to 4 kbps; a matched-compute
+control separates what the discriminator does from what extra training does; and three evaluation axes (spectral
+distance, ASR intelligibility, voice-quality proxies) disagree with each other in instructive ways.
 
-Total compute: about 5 GPU-hours on a Modal A10, roughly $8.
+Total compute: about 7 GPU-hours on a Modal A10, roughly $10.
 
 ## Model
 
@@ -31,46 +32,48 @@ unseen speakers.
 | run | init | steps | discriminator | (w_adv, w_fm) | A10 time |
 |---|---|---|---|---|---|
 | `base` | scratch | 50,000 | no | (0, 0) | 75 min |
+| `base_cont` | `base` | 25,000 | no | (0, 0) | 40 min |
 | `gan_soft` | `base` | 25,000 | yes | (0.03, 0.1) | 100 min |
 | `gan` | `base` | 25,000 | yes | (0.1, 0.3) | 105 min |
 
-Batch 16 × 1 s crops, Adam, lr 3e-4 with 500-step warmup and cosine decay to 3e-5. The adversarial runs are
-fine-tunes from the `base` checkpoint with a fresh discriminator. The mel/wave/commitment weights are identical
-across runs; only the adversarial terms differ.
+Batch 16 × 1 s crops, Adam, lr 3e-4 with 500-step warmup and cosine decay to 3e-5; every run, including the
+fine-tunes, restarts this schedule from the top. The three fine-tunes start from the `base` checkpoint with a fresh
+optimiser. `base_cont` is the matched-compute control: identical to the adversarial runs except that the discriminator
+is off. The mel/wave/commitment weights are identical across runs; only the adversarial terms differ.
 
 ## Results
 
 All evaluations on test-clean. Spectral metrics use all 3,924 clips of at least 2 s; WER and voice-quality proxies
-use 500 full utterances spread across speakers (54 minutes of audio).
+use 500 full utterances spread across speakers (54 minutes of audio). `cont` is `base_cont`, `soft` is `gan_soft`.
 
 **Rate-distortion** (log-mel distance, lower is better; SI-SNR in dB, higher is better)
 
-| kbps | mel: base | soft | gan | SI-SNR: base | soft | gan |
-|---|---|---|---|---|---|---|
-| 0.5 | 0.493 | 0.522 | 0.536 | −3.0 | −3.1 | −2.4 |
-| 1 | 0.375 | 0.396 | 0.412 | 1.2 | 1.4 | 1.7 |
-| 2 | 0.303 | 0.319 | 0.336 | 4.4 | 4.9 | 5.0 |
-| 4 | 0.274 | 0.286 | 0.305 | 5.8 | 6.6 | 6.7 |
+| kbps | mel: base | cont | soft | gan | SI-SNR: base | cont | soft | gan |
+|---|---|---|---|---|---|---|---|---|
+| 0.5 | 0.493 | 0.496 | 0.522 | 0.536 | −3.0 | −3.4 | −3.1 | −2.4 |
+| 1 | 0.375 | 0.371 | 0.396 | 0.412 | 1.2 | 1.0 | 1.4 | 1.7 |
+| 2 | 0.303 | 0.297 | 0.319 | 0.336 | 4.4 | 4.5 | 4.9 | 5.0 |
+| 4 | 0.274 | 0.263 | 0.286 | 0.305 | 5.8 | 6.2 | 6.6 | 6.7 |
 
 **Intelligibility** (Whisper small.en WER on the reconstruction, scored against LibriTTS transcripts with Whisper's
 English normaliser; WER on the original audio is 2.7%)
 
-| kbps | base | soft | gan |
-|---|---|---|---|
-| 0.5 | 14.5% | 20.5% | 20.6% |
-| 1 | 4.8% | 5.1% | 5.4% |
-| 2 | 3.2% | 3.1% | 3.4% |
-| 4 | 2.9% | 2.9% | 3.1% |
+| kbps | base | cont | soft | gan |
+|---|---|---|---|---|
+| 0.5 | 14.5% | 18.5% | 20.5% | 20.6% |
+| 1 | 4.8% | 5.1% | 5.1% | 5.4% |
+| 2 | 3.2% | 3.1% | 3.1% | 3.4% |
+| 4 | 2.9% | 3.0% | 2.9% | 3.1% |
 
 **Voice-quality proxies** (computed on the same voiced frames for every condition; the original audio scores CPP 0.283
 and flatness 0.176)
 
-| kbps | CPP: base | soft | gan | flatness: base | soft | gan | balance (dB): base | soft | gan |
-|---|---|---|---|---|---|---|---|---|---|
-| 0.5 | 0.147 | 0.206 | 0.221 | 0.245 | 0.210 | 0.193 | 2.43 | 1.90 | 1.71 |
-| 1 | 0.157 | 0.219 | 0.232 | 0.234 | 0.198 | 0.182 | 1.53 | 1.20 | 0.97 |
-| 2 | 0.164 | 0.227 | 0.238 | 0.227 | 0.188 | 0.179 | 1.00 | 0.64 | 0.51 |
-| 4 | 0.165 | 0.229 | 0.240 | 0.229 | 0.185 | 0.177 | 0.89 | 0.43 | 0.36 |
+| kbps | CPP: base | cont | soft | gan | flatness: base | cont | soft | gan | balance (dB): base | cont | soft | gan |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0.5 | 0.147 | 0.149 | 0.206 | 0.221 | 0.245 | 0.266 | 0.210 | 0.193 | 2.43 | 2.48 | 1.90 | 1.71 |
+| 1 | 0.157 | 0.161 | 0.219 | 0.232 | 0.234 | 0.239 | 0.198 | 0.182 | 1.53 | 1.52 | 1.20 | 0.97 |
+| 2 | 0.164 | 0.168 | 0.227 | 0.238 | 0.227 | 0.226 | 0.188 | 0.179 | 1.00 | 0.99 | 0.64 | 0.51 |
+| 4 | 0.165 | 0.170 | 0.229 | 0.240 | 0.229 | 0.225 | 0.185 | 0.177 | 0.89 | 0.80 | 0.43 | 0.36 |
 
 - *CPP*: cepstral peak prominence on voiced frames, a standard measure of harmonic clarity; low values sound breathy or
   rough. Higher and closer to the original is better.
@@ -78,7 +81,7 @@ and flatness 0.176)
   above it means the top band is filled with haze.
 - *balance*: mean absolute deviation of band energy (0-1, 1-2, 2-4, 4-8 kHz) from the original, in dB. Lower is better.
 
-Figures: `results/compare.png` overlays the three rate-distortion curves; `results/*_curves.png` show eval during
+Figures: `results/compare.png` overlays the four rate-distortion curves; `results/*_curves.png` show eval during
 training and the training loss. Audio: `results/samples/` has the same test clip through every model at 1 and 4 kbps.
 
 ## Findings
@@ -90,37 +93,48 @@ training and the training loss. Audio: `results/samples/` has the same test clip
 2. **Spectral distance and intelligibility measure different things.** Mel distance keeps improving from 2 to 4 kbps
    (0.303 → 0.274) while WER does not move. The extra bits buy fidelity, not words.
 
-3. **The discriminator trades spectral distance for voice quality, and the trade scales with its weight.** Mel distance
-   worsens by about 4% (`soft`) and 11% (`gan`) across the board. In exchange, harmonic clarity recovers from 58% of the
-   original's CPP to 81% and 85%, high-band flatness returns to the original's value, and spectral balance error drops
-   from 0.9 dB to 0.4 dB at 4 kbps. Every proxy is monotone in the weight at every bitrate. This is the standard
-   dissociation between spectral losses and perceived quality: the mel loss is phase-blind and compressive above 2 kHz,
-   so the mel-only decoder smears upper harmonics into noise, and a discriminator that sees the complex STFT puts them
-   back.
+3. **The discriminator trades spectral distance for voice quality, and the trade scales with its weight.** Against the
+   matched-compute control, mel distance worsens by 5 to 9% (`soft`) and 8 to 16% (`gan`), more at higher bitrates. In
+   exchange, harmonic clarity recovers from 60% of the original's CPP to 81% and 85%, high-band flatness returns to
+   the original's value, and spectral balance error at 4 kbps drops from 0.8 dB to 0.4 dB. Every proxy is monotone in
+   the weight at every bitrate, and none of it comes from the extra training: `base_cont` moves CPP by 0.005 at most
+   and flatness by 0.004 or less from 1 kbps up. This is the standard dissociation between spectral losses and
+   perceived quality: the mel loss is phase-blind and compressive above 2 kHz, so the mel-only decoder smears upper
+   harmonics into noise, and a discriminator that sees the complex STFT puts them back.
 
-4. **The intelligibility cost is concentrated at 0.5 kbps and is a threshold, not a dial.** Both adversarial runs land
-   at 20.5% WER at 0.5 kbps against 14.5% for `base`, regardless of weight, while at 1 kbps and above `gan_soft` matches
-   `base` within noise. At one codebook the code does not carry enough information to pin down the fine structure, and
-   the discriminator pushes the decoder to invent speech-like texture anyway: CPP rises (0.147 → 0.206) while WER rises
-   with it. The output is more speech-shaped and less correct. `gan_soft` keeps essentially all of the voice-quality
-   gain at no intelligibility cost from 1 kbps up, so it is the configuration to prefer if 0.5 kbps is not a target.
+4. **The 0.5 kbps intelligibility cost belongs to the fine-tune, not the discriminator, and mel distance cannot see
+   it.** Without the control this looks like an adversarial artefact: both adversarial runs land at 20.5% WER at
+   0.5 kbps against 14.5% for `base`. But `base_cont` reaches 18.5% with no discriminator at all, so two thirds of the
+   regression is the second training phase itself, and the discriminator adds about two points, which is close to the
+   scatter at that error rate. Mel distance at 0.5 kbps does not register any of it (0.493 → 0.496); SI-SNR
+   (−3.0 → −3.4 dB) and high-band flatness (0.245 → 0.266) do. Continued training improves the 4 kbps path (mel
+   0.274 → 0.263, SI-SNR +0.4 dB) while degrading the single-codebook path: the decoder is shared across bitrates
+   through quantizer dropout, so a second training phase, restarting the learning rate at 3e-4 from a checkpoint that
+   had decayed to 3e-5, can move capacity between paths. This is finding 2 from the other side: at 0.5 kbps the mel
+   loss is flat while intelligibility moves by a third. From 1 kbps up, `gan_soft` matches `base_cont` within 0.1
+   WER points (5.1 / 3.1 / 2.9 against 5.1 / 3.1 / 3.0), so it keeps the full voice-quality gain at no
+   intelligibility cost and is the configuration to prefer if 0.5 kbps is not a target.
 
-5. **SI-SNR improves with the adversarial runs, but not because of the discriminator.** Both `gan_soft` and `gan` gain
-   0.5 to 0.9 dB over `base` and are equal to each other, which points to the additional 25,000 steps of waveform loss
-   rather than the adversarial term.
-
-<!-- control run (base_cont: base continued 25k steps, no discriminator) goes here: does 0.5 kbps WER stay at 14.5%,
-     and does SI-SNR reach 6.6 dB without a discriminator? -->
+5. **The SI-SNR gain is mostly the discriminator's.** Continued training alone adds 0.4 dB at 4 kbps, nothing at 1
+   and 2 kbps, and loses 0.4 dB at 0.5 kbps. Both adversarial runs sit a further 0.4 to 0.5 dB above `base_cont` at
+   1, 2 and 4 kbps, and `gan` a full 1 dB above it at 0.5 kbps. SI-SNR is a phase-sensitive metric, and the
+   feature-matching loss is computed on a discriminator that sees the complex STFT, so it is the one term in the
+   adversarial runs that constrains phase beyond the waveform L1.
 
 ## Caveats
 
-- 500 utterances is about 8,500 words; WER differences under roughly 0.3 points are within noise.
-- The adversarial runs have 25,000 more training steps than `base`. The control run above is the right comparison for
-  anything attributed to training length.
+- 500 utterances is about 8,500 words; WER differences under roughly 0.3 points are within noise at the 3 to 5% level.
+  At 15 to 20% the scatter is wider, so the 2-point gap between `base_cont` and the adversarial runs at 0.5 kbps is
+  suggestive, not established.
+- `base_cont` is the matched-compute reference for everything attributed to the discriminator; comparisons against
+  `base` conflate the adversarial term with 25,000 extra steps and a learning-rate restart. Findings 3 to 5 use
+  `base_cont`. Whether the restart itself causes the 0.5 kbps regression is untested; a fine-tune with peak lr 3e-5
+  would settle it.
 - CPP, flatness and balance are proxies computed from spectrograms, not a listening test. They agree with each other and
   with what the spectrograms show, but a MOS study would be the real measure. The audio in `results/samples/` is there
   for the reader to judge.
-- Single seed, 9 hours of clean read speech, one model size. Numbers are indicative of trends, not of the ceiling.
+- Single seed per run, 9 hours of clean read speech, one model size. Numbers are indicative of trends, not of the
+  ceiling, and the size of the fine-tune effect at 0.5 kbps (4 WER points) is one measurement.
 
 ## Reproduce
 
@@ -131,11 +145,12 @@ pip install torch torchaudio soundfile numpy modal vector-quantize-pytorch matpl
 modal run stage.py::stage --split dev_clean && modal run stage.py::stage --split test_clean   # LibriTTS-R into a volume
 modal run train.py::prep                                                                     # resample to 16 kHz, cache
 modal run --detach train.py::train --run base --steps 50000
-modal run --detach train.py::train --run gan_soft --init /runs/base/last.pt --w-adv 0.03 --w-fm 0.1 --steps 25000
-modal run --detach train.py::train --run gan      --init /runs/base/last.pt --w-adv 0.1  --w-fm 0.3 --steps 25000
-modal run eval_wer.py::wer --runs base,gan_soft,gan --n 500
-modal run eval_quality.py::quality --runs base,gan_soft,gan --n 500
-modal volume get codec-runs / runs && python plot.py runs/base runs/gan_soft runs/gan
+modal run --detach train.py::train --run base_cont --init /runs/base/last.pt --steps 25000
+modal run --detach train.py::train --run gan_soft  --init /runs/base/last.pt --w-adv 0.03 --w-fm 0.1 --steps 25000
+modal run --detach train.py::train --run gan       --init /runs/base/last.pt --w-adv 0.1  --w-fm 0.3 --steps 25000
+modal run eval_wer.py::wer --runs base,base_cont,gan_soft,gan --n 500
+modal run eval_quality.py::quality --runs base,base_cont,gan_soft,gan --n 500
+modal volume get codec-runs / runs && python plot.py runs/base runs/base_cont runs/gan_soft runs/gan
 ```
 
 `train.py` also runs locally (`python train.py --run debug --max_files 200 --steps 200`) on CPU or Apple MPS for
@@ -148,4 +163,4 @@ development.
 - `eval_quality.py`: CPP, high-band flatness and spectral balance per bitrate.
 - `plot.py`: rate-distortion, eval-during-training and training-loss figures.
 - `bench.py`, `stage.py`: GPU benchmark and dataset staging.
-- `results/`: eval JSON, WER and quality tables, figures, audio samples.
+- `results/`: eval JSON per run, WER and quality tables, figures, audio samples.
