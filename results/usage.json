@@ -20,7 +20,7 @@
   },
   "q4": {
    "used": 1013,
-   "perplexity": 551.1,
+   "perplexity": 551.2,
    "duplicate_rows": 0,
    "codebook_size": 1024
   },
@@ -43,7 +43,7 @@
    "codebook_size": 1024
   },
   "q8": {
-   "used": 597,
+   "used": 598,
    "perplexity": 201.5,
    "duplicate_rows": 330,
    "codebook_size": 1024
@@ -70,7 +70,7 @@
   },
   "q4": {
    "used": 715,
-   "perplexity": 406.9,
+   "perplexity": 406.8,
    "duplicate_rows": 306,
    "codebook_size": 1024
   },
@@ -96,6 +96,56 @@
    "used": 598,
    "perplexity": 212.9,
    "duplicate_rows": 342,
+   "codebook_size": 1024
+  }
+ },
+ "base_fix": {
+  "q1": {
+   "used": 1023,
+   "perplexity": 563.3,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q2": {
+   "used": 1023,
+   "perplexity": 636.0,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q3": {
+   "used": 1020,
+   "perplexity": 637.5,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q4": {
+   "used": 1013,
+   "perplexity": 573.5,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q5": {
+   "used": 1008,
+   "perplexity": 487.6,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q6": {
+   "used": 971,
+   "perplexity": 368.5,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q7": {
+   "used": 863,
+   "perplexity": 292.3,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q8": {
+   "used": 794,
+   "perplexity": 239.6,
+   "duplicate_rows": 0,
    "codebook_size": 1024
   }
  },

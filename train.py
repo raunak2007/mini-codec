@@ -14,7 +14,7 @@ modal (one-off CPU preprocessing, then a detached GPU run):
   modal app logs ap-XXXX                         # follow the run (use the app id printed at launch)
   modal volume get codec-runs base ./runs/base   # checkpoint, log.jsonl, eval.jsonl, eval_final.json, samples/
 """
-import argparse, json, math, random, time, warnings
+import argparse, json, math, os, random, time, warnings
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, asdict, fields
 from pathlib import Path
@@ -388,7 +388,7 @@ except ImportError:            # local runs don't need it
 if modal:
 
     app = modal.App("mini-codec")
-    image = modal.Image.debian_slim(python_version="3.11").pip_install("torch", "torchaudio", "numpy", "soundfile", "vector-quantize-pytorch")
+    image = modal.Image.debian_slim(python_version="3.11").apt_install("git").pip_install("torch", "torchaudio", "numpy", "soundfile", os.environ.get("VQ_PKG", "vector-quantize-pytorch"))
     data_vol = modal.Volume.from_name("codec-data")
     run_vol = modal.Volume.from_name("codec-runs", create_if_missing=True)
     MODAL_PATHS = dict(root="/data/LibriTTS_R", cache="/data/cache", out="/runs")
