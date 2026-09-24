@@ -1,0 +1,105 @@
+{
+ "base": {
+  "q1": {
+   "used": 1023,
+   "perplexity": 595.2,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q2": {
+   "used": 1022,
+   "perplexity": 661.9,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q3": {
+   "used": 1017,
+   "perplexity": 620.9,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q4": {
+   "used": 1013,
+   "perplexity": 551.1,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q5": {
+   "used": 706,
+   "perplexity": 339.7,
+   "duplicate_rows": 305,
+   "codebook_size": 1024
+  },
+  "q6": {
+   "used": 700,
+   "perplexity": 297.0,
+   "duplicate_rows": 291,
+   "codebook_size": 1024
+  },
+  "q7": {
+   "used": 631,
+   "perplexity": 238.9,
+   "duplicate_rows": 324,
+   "codebook_size": 1024
+  },
+  "q8": {
+   "used": 597,
+   "perplexity": 201.5,
+   "duplicate_rows": 330,
+   "codebook_size": 1024
+  }
+ },
+ "gan_soft": {
+  "q1": {
+   "used": 717,
+   "perplexity": 420.4,
+   "duplicate_rows": 307,
+   "codebook_size": 1024
+  },
+  "q2": {
+   "used": 1022,
+   "perplexity": 686.3,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q3": {
+   "used": 1022,
+   "perplexity": 650.1,
+   "duplicate_rows": 0,
+   "codebook_size": 1024
+  },
+  "q4": {
+   "used": 715,
+   "perplexity": 406.9,
+   "duplicate_rows": 306,
+   "codebook_size": 1024
+  },
+  "q5": {
+   "used": 711,
+   "perplexity": 342.8,
+   "duplicate_rows": 306,
+   "codebook_size": 1024
+  },
+  "q6": {
+   "used": 695,
+   "perplexity": 305.1,
+   "duplicate_rows": 310,
+   "codebook_size": 1024
+  },
+  "q7": {
+   "used": 664,
+   "perplexity": 262.0,
+   "duplicate_rows": 309,
+   "codebook_size": 1024
+  },
+  "q8": {
+   "used": 598,
+   "perplexity": 212.9,
+   "duplicate_rows": 342,
+   "codebook_size": 1024
+  }
+ },
+ "_meta": {
+  "n": 500
+ }
+}

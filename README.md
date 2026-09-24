@@ -81,6 +81,21 @@ and flatness 0.176)
   above it means the top band is filled with haze.
 - *balance*: mean absolute deviation of band energy (0-1, 1-2, 2-4, 4-8 kHz) from the original, in dB. Lower is better.
 
+**Codebook utilization** (500 test utterances; `used` is codes that occur at least once out of 1024, `perplexity` is the
+exponential of the code-histogram entropy, i.e. the effective codebook size, `dup` is exact duplicate rows in the trained
+codebook)
+
+| quantizer | base: used | perplexity | dup | gan_soft: used | perplexity | dup |
+|---|---|---|---|---|---|---|
+| 1 | 1023 | 595 | 0 | 717 | 420 | 307 |
+| 2 | 1022 | 662 | 0 | 1022 | 686 | 0 |
+| 3 | 1017 | 621 | 0 | 1022 | 650 | 0 |
+| 4 | 1013 | 551 | 0 | 715 | 407 | 306 |
+| 5 | 706 | 340 | 305 | 711 | 343 | 306 |
+| 6 | 700 | 297 | 291 | 695 | 305 | 310 |
+| 7 | 631 | 239 | 324 | 664 | 262 | 309 |
+| 8 | 597 | 202 | 330 | 598 | 213 | 342 |
+
 Figures: `results/compare.png` overlays the four rate-distortion curves; `results/*_curves.png` show eval during
 training and the training loss. Audio: `results/samples/` has the same test clip through every model at 1 and 4 kbps.
 
@@ -133,6 +148,13 @@ training and the training loss. Audio: `results/samples/` has the same test clip
 - CPP, flatness and balance are proxies computed from spectrograms, not a listening test. They agree with each other and
   with what the spectrograms show, but a MOS study would be the real measure. The audio in `results/samples/` is there
   for the reader to judge.
+- Codebook utilization is incomplete in the later quantizers. Each training batch holds 800 latent frames for
+  1024-entry codebooks, and `vector-quantize-pytorch`'s dead-code expiry samples replacement vectors *with replacement*
+  when more codes are dead than the batch has vectors, so about 300 rows of most late codebooks are exact duplicates at
+  the end of training (table above). The last four quantizers therefore carry 7.6 to 8.4 effective bits per code
+  instead of 10, and the nominal 4 kbps is closer to 3.6 kbps of usable capacity. Found with `eval_usage.py`; a fix is
+  proposed upstream (https://github.com/lucidrains/vector-quantize-pytorch/pull/NNN). Retraining with the fix, or with a batch larger than the codebook, is the obvious next
+  experiment and could change the 2 versus 4 kbps comparison.
 - Single seed per run, 9 hours of clean read speech, one model size. Numbers are indicative of trends, not of the
   ceiling, and the size of the fine-tune effect at 0.5 kbps (4 WER points) is one measurement.
 
@@ -150,6 +172,7 @@ modal run --detach train.py::train --run gan_soft  --init /runs/base/last.pt --w
 modal run --detach train.py::train --run gan       --init /runs/base/last.pt --w-adv 0.1  --w-fm 0.3 --steps 25000
 modal run eval_wer.py::wer --runs base,base_cont,gan_soft,gan --n 500
 modal run eval_quality.py::quality --runs base,base_cont,gan_soft,gan --n 500
+modal run eval_usage.py::usage --runs base,gan_soft --n 500
 modal volume get codec-runs / runs && python plot.py runs/base runs/base_cont runs/gan_soft runs/gan
 ```
 
@@ -161,6 +184,7 @@ development.
 - `train.py`: model, losses, discriminator, training loop, Modal entrypoints (`prep`, `train`).
 - `eval_wer.py`: Whisper WER per bitrate on full utterances.
 - `eval_quality.py`: CPP, high-band flatness and spectral balance per bitrate.
+- `eval_usage.py`: codebook utilization per quantizer (codes used, perplexity, duplicate rows).
 - `plot.py`: rate-distortion, eval-during-training and training-loss figures.
 - `bench.py`, `stage.py`: GPU benchmark and dataset staging.
 - `results/`: eval JSON per run, WER and quality tables, figures, audio samples.
